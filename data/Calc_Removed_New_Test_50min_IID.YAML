@@ -1,0 +1,7 @@
+path: data/datasets/Calc_Removed_New_Test_50min_IID # dataset root dir WARNING: THE FILE PATH IS FROM THE NOTEBOOK YOU ARE RUNNING NOT WHERE THIS FILE IS SAVED
+train: images/train # train images (relative to 'path') images
+val: images/val  # val images (relative to 'path')  images
+
+# Classes
+nc: 2  # number of classes
+names: ['bone-loss', 'dental-caries']  # class names
