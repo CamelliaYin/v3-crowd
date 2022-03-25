@@ -615,6 +615,7 @@ def main(opt, callbacks=Callbacks()):
 def run(**kwargs):
     # Usage: import train; train.run(data='coco128.yaml', imgsz=320, weights='yolov3.pt')
     opt = parse_opt(True)
+
     for k, v in kwargs.items():
         setattr(opt, k, v)
     main(opt)
@@ -622,4 +623,12 @@ def run(**kwargs):
 
 if __name__ == "__main__":
     opt = parse_opt()
+
+    opt.data = '../data/iid-tv.yaml'
+    opt.hyp = '../data/hyps/hyp.scratch.yaml'
+    opt.exist_ok = False
+    opt.batch_size = 20
+    opt.epochs = 3
+    opt.name = 'testDEL'
+
     main(opt)
