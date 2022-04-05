@@ -428,7 +428,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
             ema.update_attr(model, include=['yaml', 'nc', 'hyp', 'names', 'stride', 'class_weights'])
             final_epoch = (epoch + 1 == epochs) or stopper.possible_stop
             if not noval or final_epoch:  # Calculate mAP
-                results, maps, _ = val.run(data_dict,
+                results, maps, _ = val.run(data_dict, torchMode, vol_id_map, file_volunteers_dict, cls_num, bcc_epoch, val_dataset, opt,
                                            batch_size=batch_size // WORLD_SIZE * 2,
                                            imgsz=imgsz,
                                            model=ema.ema,
@@ -470,6 +470,24 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
             if RANK == -1 and stopper(epoch=epoch, fitness=fi):
                 break
 
+            # check for bcc convergence
+        try:
+            if epoch > start_epoch and torch.abs((batch_lb - old_lb) / old_lb) < bcc_params['convergence_threshold']:
+                print('Convergence reached!')
+                break
+            else:
+                old_lb = batch_lb
+        except IndexError:
+            pass
+
+        try:
+            del batch_pred, batch_qtargets, batch_qtargets_yolo
+
+        except UnboundLocalError:
+            pass
+
+            torch.cuda.empty_cache()
+
             # Stop DDP TODO: known issues shttps://github.com/ultralytics/yolov5/pull/4576
             # stop = stopper(epoch=epoch, fitness=fi)
             # if RANK == 0:
@@ -489,7 +507,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
                 strip_optimizer(f)  # strip optimizers
                 if f is best:
                     LOGGER.info(f'\nValidating {f}...')
-                    results, _, _ = val.run(data_dict,
+                    results, _, _ = val.run(data_dict, torchMode, vol_id_map, file_volunteers_dict, cls_num, bcc_epoch, val_dataset, opt,
                                             batch_size=batch_size // WORLD_SIZE * 2,
                                             imgsz=imgsz,
                                             model=attempt_load(f, device).half(),
