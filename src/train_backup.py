@@ -368,10 +368,17 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
                 pred = model(imgs)  # forward
                 if bcc_flag:
                     model.eval()
+                    # prepare logits for BCC and compute_loss
+                    # softmax then taking logarithm
+                    f_sm = nn.Softmax(dim=0)
+                    pred_nor = pred
+                    for i in range(len(pred)):
+                        pred_nor[i][..., 4:] = torch.log(f_sm(pred_nor[i][..., 4:]))
+
                     # prepare pred for bcc(): extract pred in shape IXBX3
                     pred_oc = []
-                    for i in range(len(pred)):
-                        pred_oc.append(torch.flatten(pred[i], start_dim=1, end_dim=-2)[:,:,4:])
+                    for i in range(len(pred_nor)):
+                        pred_oc.append(torch.flatten(pred_nor[i], start_dim=1, end_dim=-2)[:,:,4:])
                     batch_pred = torch.cat((pred_oc[0], pred_oc[1], pred_oc[2]), 1)
                     # obtain inferred label via bcc
                     batch_qtargets, batch_pcm['variational'], batch_lb = BCC(target_volunteers_bcc, batch_pred,
@@ -387,7 +394,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
                         batch_qtargets_yolo = torch.cat([batch_qtargets_xywh, batch_qtargets_lowdim],
                                                 dim=-1)  # imageid, 4 locations, 3 cls
                     model.train()
-                    loss, loss_items = compute_loss(batch_pred, batch_qtargets_yolo.to(device))  # loss scaled by batch_size
+                    loss, loss_items = compute_loss(pred_nor, batch_qtargets_yolo.to(device))  # loss scaled by batch_size
                 else:
                     loss, loss_items = compute_loss(pred, targets.to(device))
                 if RANK != -1:
