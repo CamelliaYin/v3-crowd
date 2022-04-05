@@ -132,6 +132,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
         LOGGER.info(f'Transferred {len(csd)}/{len(model.state_dict())} items from {weights}')  # report
     else:
         model = Model(cfg, ch=3, nc=nc, anchors=hyp.get('anchors')).to(device)  # create
+        # ch indicates channel
 
     # Freeze
     freeze = [f'model.{x}.' for x in range(freeze)]  # layers to freeze
@@ -371,8 +372,12 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
                     # prepare logits for BCC and compute_loss
                     # softmax then taking logarithm
                     f_sm = nn.Softmax(dim=0)
-                    pred_nor = pred
-                    for i in range(len(pred)):
+                    pred_nor = []
+                    for item in range(len(pred)):
+                        each_pred = torch.clone(pred[i])
+                        pred_nor.append(each_pred)
+                    # pred_nor = pred
+                    for i in range(len(pred_nor)):
                         pred_nor[i][..., 4:] = torch.log(f_sm(pred_nor[i][..., 4:]))
 
                     # prepare pred for bcc(): extract pred in shape IXBX3
