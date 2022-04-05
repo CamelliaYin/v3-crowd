@@ -1,8 +1,9 @@
 import numpy as np
 import os
 import torch
-from inferred_targets import initialise_prior
+from utils.inferred_targets import initialise_prior
 
+DEFAULT_G = np.array([1.0/32, 1.0/16, 1.0/8])
 
 def extract_volunteers_helper(id_map, count, direct):
     for files in os.listdir(direct):
@@ -130,20 +131,21 @@ def qt2yolo_soft(qt, G, Na, vigcwh, torchMode=False, device=None):
             wh_ig_mean = wh_ig.mean(axis=0)
             # wh_init_multiplier = wh_ig_mean if BKGD_WH_IS_MEAN and wh_ig.shape[0] > 0 else -1 #why -1 all the time
             # wh = wh_init_multiplier * torch.ones(n_cells, 2)
-            wh = wh_ig_mean * torch.ones(n_cells, 2) #may need more complicated computation
+            wh = wh_ig_mean * torch.ones(n_cells*3, 2) #may need more complicated computation
             tagged_gc_ids = vigcwh_ig[:, 3].unique().int()
             for gc in tagged_gc_ids:
                 igc_indices = torch.logical_and(ig_indices, vigcwh[:, 3] == gc)
                 vigcwh_igc = vigcwh[igc_indices]
                 wh_igc = vigcwh_igc[:, -2:]
                 wh_igc_mean = wh_igc.mean(axis=0)
-                wh[gc, :] = wh_igc_mean if wh_igc.shape[0] == 0 else wh_ig_mean
-            for a in range(Na):
-                z = torch.linspace(g_frac / 2, 1 - g_frac / 2, S_g).repeat(S_g, 1).unsqueeze(-1)
-                xy = torch.cat((z.permute(1, 0, 2), z), 2).permute(1, 0, 2).reshape(n_cells, 2)
-                icxywh = torch.cat(
-                    ((i * torch.ones(n_cells, 1)).to(device), xy.to(device), wh.to(device)),1)
-                y_bcc.append(icxywh)
-                st += n_cells
+                wh[gc, :] = wh_ig_mean if wh_igc.shape[0] == 0 else wh_ig_mean
+            # for a in range(Na):
+            z = torch.linspace(g_frac / 2, 1 - g_frac / 2, S_g).repeat(S_g, 1).unsqueeze(-1)
+            xy = torch.cat((z.permute(1, 0, 2), z), 2).permute(1, 0, 2).reshape(n_cells, 2)
+            xy_a = torch.cat((xy, xy, xy), 0)
+            icxywh = torch.cat(
+                    ((i * torch.ones(n_cells*3, 1)).to(device), xy_a.to(device), wh.to(device)),1)
+            y_bcc.append(icxywh)
+            st += n_cells
     qt_yolo_soft = torch.cat(y_bcc)
     return qt_yolo_soft

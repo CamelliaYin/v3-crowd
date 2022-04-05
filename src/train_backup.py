@@ -50,8 +50,10 @@ from utils.metrics import fitness
 from utils.plots import plot_evolve, plot_labels
 from utils.torch_utils import EarlyStopping, ModelEMA, de_parallel, select_device, torch_distributed_zero_first
 
-from utils.bcc_prep import extract_volunteers, get_file_volunteers_dict, init_bcc_params, compute_param_confusion_matrices, qt2yolo_soft
+
 from utils.inferred_targets import VB_iteration as BCC
+from utils.bcc_prep import extract_volunteers, get_file_volunteers_dict, init_bcc_params, compute_param_confusion_matrices, qt2yolo_soft, convert_target_volunteers_yolo2bcc
+
 LOCAL_RANK = int(os.getenv('LOCAL_RANK', -1))  # https://pytorch.org/docs/stable/elastic/run.html
 RANK = int(os.getenv('RANK', -1))
 WORLD_SIZE = int(os.getenv('WORLD_SIZE', 1))
@@ -62,6 +64,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
           device,
           callbacks
           ):
+    torchMode = True
     save_dir, epochs, batch_size, weights, single_cls, evolve, data, cfg, resume, noval, nosave, workers, freeze, = \
         Path(opt.save_dir), opt.epochs, opt.batch_size, opt.weights, opt.single_cls, opt.evolve, opt.data, opt.cfg, \
         opt.resume, opt.noval, opt.nosave, opt.workers, opt.freeze
@@ -218,9 +221,9 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
 
     # Trainloader
     train_loader, dataset = create_dataloader(train_path, imgsz, batch_size // WORLD_SIZE, gs, single_cls,
-                                              hyp=hyp, augment=True, cache=opt.cache, rect=opt.rect, rank=LOCAL_RANK,
+                                              hyp=hyp, augment=False, cache=opt.cache, rect=opt.rect, rank=LOCAL_RANK,
                                               workers=workers, image_weights=opt.image_weights, quad=opt.quad,
-                                              prefix=colorstr('train: '), shuffle=True)
+                                              prefix=colorstr('train: '), shuffle=False)
     mlc = int(np.concatenate(dataset.labels, 0)[:, 0].max())  # max label class
     nb = len(train_loader)  # number of batches
     assert mlc < nc, f'Label class {mlc} exceeds nc={nc} in {data}. Possible class labels are 0-{nc - 1}'
@@ -228,8 +231,8 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
     # bcc vol mapping & grid/anchor choices
     if bcc_epoch != -1:
         vol_id_map = extract_volunteers(data_dict)  # contain expert
-        expert_name = 'Jonathan'
-        del vol_id_map[expert_name]
+        # expert_name = 'Jonathan'
+        # del vol_id_map[expert_name]
         file_volunteers_dict = get_file_volunteers_dict(data_dict, mode=['train', 'val'], vol_id_map=vol_id_map)
         # TODO: if we dont consider exepert in training, we should do del expert and only take the mode = ['train']
     n_grid_choices, n_anchor_choices = model.model[-1].nl, model.model[-1].na
@@ -294,7 +297,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
         bcc_params['n_epoch'] = epochs
         batch_pcm = {k: torch.tensor(v).to(device) if torchMode else v for k, v in compute_param_confusion_matrices(bcc_params).items()}
         # pred0_bcc = init_nn_output(dataset.n, grid_ratios, n_anchor_choices, bcc_params) # comment out later
-        bcc_metrics = init_metrics(bcc_params['n_epoch'])
+        # bcc_metrics = init_metrics(bcc_params['n_epoch'])
 
 
     LOGGER.info(f'Image sizes {imgsz} train, {imgsz} val\n'
@@ -368,7 +371,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
                     # prepare pred for bcc(): extract pred in shape IXBX3
                     pred_oc = []
                     for i in range(len(pred)):
-                        pred_oc.append(torch.flatten(pred[i], start_dim=1, end_dim=-2)[:,:,4])
+                        pred_oc.append(torch.flatten(pred[i], start_dim=1, end_dim=-2)[:,:,4:])
                     batch_pred = torch.cat((pred_oc[0], pred_oc[1], pred_oc[2]), 1)
                     # obtain inferred label via bcc
                     batch_qtargets, batch_pcm['variational'], batch_lb = BCC(target_volunteers_bcc, batch_pred,
@@ -411,6 +414,8 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
                 pbar.set_description(('%10s' * 2 + '%10.4g' * 5) % (
                     f'{epoch}/{epochs - 1}', mem, *mloss, targets.shape[0], imgs.shape[-1]))
                 callbacks.run('on_train_batch_end', ni, model, imgs, targets, paths, plots, opt.sync_bn)
+
+            torch.cuda.empty_cache()
             # end batch ------------------------------------------------------------------------------------------------
 
         # Scheduler
@@ -510,6 +515,8 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
 def parse_opt(known=False):
     parser = argparse.ArgumentParser()
     parser.add_argument('--bcc_epoch', type=int, default=0, help='start-epoch for BCC+YOLO run; use -1 for no BCC.')
+    parser.add_argument('--cm_diagonal_prior_hyp', type=float, default=1e-1, help='BCC parameter to determine the diagonal prior for the matrix.')
+    parser.add_argument('--convergence_threshold_hyp', type=float, default=1e-6, help='BCC parameter to determine the convergence threshold.')
     parser.add_argument('--weights', type=str, default=ROOT / 'yolov3.pt', help='initial weights path')
     parser.add_argument('--cfg', type=str, default='', help='model.yaml path')
     parser.add_argument('--data', type=str, default=ROOT / 'data/coco128.yaml', help='dataset.yaml path')
@@ -693,5 +700,5 @@ def run(**kwargs):
 
 if __name__ == "__main__":
     opt = parse_opt()
-    opt.data = 'data/single_toy_iid.yaml'
+    opt.data = 'data/single_toy_bcc.yaml'
     main(opt)
