@@ -220,9 +220,12 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model).to(device)
         LOGGER.info('Using SyncBatchNorm()')
 
+    aug = opt.augment
+    print('Augmentation is: ', aug)
+
     # Trainloader
     train_loader, dataset = create_dataloader(train_path, imgsz, batch_size // WORLD_SIZE, gs, single_cls,
-                                              hyp=hyp, augment=False, cache=opt.cache, rect=opt.rect, rank=LOCAL_RANK,
+                                              hyp=hyp, augment=aug, cache=opt.cache, rect=opt.rect, rank=LOCAL_RANK,
                                               workers=workers, image_weights=opt.image_weights, quad=opt.quad,
                                               prefix=colorstr('train: '), shuffle=False)
     mlc = int(np.concatenate(dataset.labels, 0)[:, 0].max())  # max label class
@@ -234,8 +237,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
         vol_id_map = extract_volunteers(data_dict)  # contain expert
         # expert_name = 'Jonathan'
         # del vol_id_map[expert_name]
-        file_volunteers_dict = get_file_volunteers_dict(data_dict, mode=['train', 'val'], vol_id_map=vol_id_map)
-        # TODO: if we dont consider exepert in training, we should do del expert and only take the mode = ['train']
+        file_volunteers_dict = get_file_volunteers_dict(data_dict, mode=['train'], vol_id_map=vol_id_map)
     n_grid_choices, n_anchor_choices = model.model[-1].nl, model.model[-1].na
     grid_ratios = model.model[-1].stride.cpu().detach().numpy() / imgsz
 
@@ -332,6 +334,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
         optimizer.zero_grad()
 
         for i, (imgs, targets, paths, _) in pbar:  # batch -------------------------------------------------------------
+            # TODO: is this section supposed to be here? or should it be above (outside for the batch loop)
             if bcc_epoch != -1:
                 batch_filenames = [dataset.label_files[x].split(os.sep)[-1] for x in np.where(dataset.batch==i)[0]]
                 batch_volunteers_list = [file_volunteers_dict[fn] for fn in batch_filenames]
@@ -379,7 +382,6 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
                     # pred_nor = pred
                     for i in range(len(pred_nor)):
                         pred_nor[i][..., 4:] = torch.log(f_sm(pred_nor[i][..., 4:]))
-
                     # prepare pred for bcc(): extract pred in shape IXBX3
                     pred_oc = []
                     for i in range(len(pred_nor)):
@@ -538,6 +540,16 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
         callbacks.run('on_train_end', last, best, plots, epoch, results)
         LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}")
 
+    # Deletes yolov3.pt, as well as best.pt and last.pt weights (if toggled in otp)
+    if opt.toggle_save_weights == False:
+        if os.path.exists(os.path.join(w, "last.pt")):
+            os.remove(os.path.join(w, "last.pt"))
+        if os.path.exists(os.path.join(w, "best.pt")):
+            os.remove(os.path.join(w, "best.pt"))
+
+    if os.path.exists("yolov3.pt"):
+        os.remove("yolov3.pt")
+
     torch.cuda.empty_cache()
     return results
 
@@ -579,6 +591,8 @@ def parse_opt(known=False):
     parser.add_argument('--freeze', type=int, default=0, help='Number of layers to freeze. backbone=10, all=24')
     parser.add_argument('--save-period', type=int, default=-1, help='Save checkpoint every x epochs (disabled if < 1)')
     parser.add_argument('--local_rank', type=int, default=-1, help='DDP parameter, do not modify')
+    parser.add_argument('--toggle_save_weights', type=bool, default=False, help='True to save best and last weights,  False to not save any weights after training')
+    parser.add_argument('--augment', type=bool, default=False, help='turn augmentation on or off')
 
     # Weights & Biases arguments
     parser.add_argument('--entity', default=None, help='W&B: Entity')
@@ -730,5 +744,6 @@ def run(**kwargs):
 
 if __name__ == "__main__":
     opt = parse_opt()
-    opt.data = 'data/single_toy_bcc.yaml'
+    opt.data = '../data/single_toy_bcc.yaml'
+    opt.bcc_epoch = 0
     main(opt)
