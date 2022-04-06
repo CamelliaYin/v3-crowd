@@ -45,7 +45,7 @@ from utils.general import (LOGGER, NCOLS, check_dataset, check_file, check_git_s
                            one_cycle, print_args, print_mutation, strip_optimizer)
 from utils.loggers import Loggers
 from utils.loggers.wandb.wandb_utils import check_wandb_resume
-from utils.loss import ComputeLoss
+from utils.loss import ComputeLoss, ComputeLoss_val
 from utils.metrics import fitness
 from utils.plots import plot_evolve, plot_labels
 from utils.torch_utils import EarlyStopping, ModelEMA, de_parallel, select_device, torch_distributed_zero_first
@@ -124,15 +124,16 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
         with torch_distributed_zero_first(LOCAL_RANK):
             weights = attempt_download(weights)  # download if not found locally
         ckpt = torch.load(weights, map_location=device)  # load checkpoint
-        model = Model(cfg or ckpt['model'].yaml, ch=3, nc=nc, anchors=hyp.get('anchors')).to(device)  # create
+        model = Model(cfg or ckpt['model'].yaml, ch=1, nc=nc, anchors=hyp.get('anchors')).to(device)  # create
         exclude = ['anchor'] if (cfg or hyp.get('anchors')) and not resume else []  # exclude keys
         csd = ckpt['model'].float().state_dict()  # checkpoint state_dict as FP32
         csd = intersect_dicts(csd, model.state_dict(), exclude=exclude)  # intersect
         model.load_state_dict(csd, strict=False)  # load
         LOGGER.info(f'Transferred {len(csd)}/{len(model.state_dict())} items from {weights}')  # report
     else:
-        model = Model(cfg, ch=3, nc=nc, anchors=hyp.get('anchors')).to(device)  # create
+        model = Model(cfg, ch=1, nc=nc, anchors=hyp.get('anchors')).to(device)  # create
         # ch indicates channel
+        # https://github.com/ultralytics/yolov3/issues/625
 
     # Freeze
     freeze = [f'model.{x}.' for x in range(freeze)]  # layers to freeze
@@ -290,6 +291,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
     scaler = amp.GradScaler(enabled=cuda)
     stopper = EarlyStopping(patience=opt.patience)
     compute_loss = ComputeLoss(model)  # init loss class
+    compute_loss_val = ComputeLoss_val(model)
 
     # bcc set-up
     if bcc_epoch != -1:
@@ -375,11 +377,12 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
                     # prepare logits for BCC and compute_loss
                     # softmax then taking logarithm
                     f_sm = nn.Softmax(dim=0)
+                    # clone pred firstly
                     pred_nor = []
-                    for item in range(len(pred)):
+                    for i in range(len(pred)):
                         each_pred = torch.clone(pred[i])
                         pred_nor.append(each_pred)
-                    # pred_nor = pred
+                    # calculate the softmax in the last 3 terms
                     for i in range(len(pred_nor)):
                         pred_nor[i][..., 4:] = torch.log(f_sm(pred_nor[i][..., 4:]))
                     # prepare pred for bcc(): extract pred in shape IXBX3
@@ -451,7 +454,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
                                            save_dir=save_dir,
                                            plots=False,
                                            callbacks=callbacks,
-                                           compute_loss=compute_loss)
+                                           compute_loss_val=compute_loss_val)
 
             # Update best mAP
             fi = fitness(np.array(results).reshape(1, -1))  # weighted combination of [P, R, mAP@.5, mAP@.5-.95]
@@ -744,6 +747,6 @@ def run(**kwargs):
 
 if __name__ == "__main__":
     opt = parse_opt()
-    opt.data = '../data/single_toy_bcc.yaml'
-    opt.bcc_epoch = 0
+    opt.data = 'data/single_toy_bcc.yaml'
+    # opt.bcc_epoch = 0
     main(opt)
