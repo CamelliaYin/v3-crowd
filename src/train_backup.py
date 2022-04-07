@@ -244,11 +244,11 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
 
 
     # Process 0
-    if RANK in [-1, 0]:
-        val_loader = create_dataloader(val_path, imgsz, batch_size // WORLD_SIZE * 2, gs, single_cls,
+    if RANK in [-1, 0]: # here should unpack: val_loader, val_dataset, but somehow cannot unpack the latter
+        val_loader, val_dataset = create_dataloader(val_path, imgsz, batch_size // WORLD_SIZE * 2, gs, single_cls,
                                        hyp=hyp, cache=None if noval else opt.cache, rect=True, rank=-1,
-                                       workers=workers, pad=0.5,
-                                       prefix=colorstr('val: '))[0]
+                                       workers=workers, pad=0.5, # yolov5 set pad = 0.0
+                                       prefix=colorstr('val: '))
 
         if not resume:
             labels = np.concatenate(dataset.labels, 0)

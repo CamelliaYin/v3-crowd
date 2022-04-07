@@ -271,7 +271,7 @@ class ComputeLoss:
                 lbox += (1.0 - iou).mean()  # iou loss
 
                 # Objectness
-                llobj = tcls[i][:, 2] * -ps[:, -1]  # obj loss element-wise
+                llobj = tcls[i][:, 2] * -ps[:, 4]  # obj loss element-wise
                 # score_iou = iou.detach().clamp(0).type(tobj.dtype)
                 # if self.sort_obj_iou:
                 #     sort_id = torch.argsort(score_iou)
@@ -312,9 +312,9 @@ class ComputeLoss:
 
         nbbox = na * (80 ** 2 + 40 ** 2 + 20 ** 2)  # total bbox per image
         nimg = int(targets.shape[0] / nbbox)  # number of img
-        t_b = torch.reshape(targets, (nimg, nbbox, targets.shape[1]))
+        t_b = torch.reshape(targets, (nimg, nbbox, targets.shape[1])) # reshape to BX25200X8
         rs_img = []
-        tt = []
+        tt = [] # adding the anchor index
         gc = [80, 40, 20]
         rs_img.append(t_b[:, : (na * 80 ** 2), :])
         rs_img.append(t_b[:, (na * 80 ** 2):(3 * 80 ** 2 + 3 * 40 ** 2), :])
@@ -322,13 +322,26 @@ class ComputeLoss:
         for i in range(len(rs_img)):
             rs_img[i] = torch.reshape(rs_img[i], (nimg, na, gc[i], gc[i], targets.shape[1]))
             rsan = torch.transpose(rs_img[i], 0, 1)
-            ind_an = torch.zeros_like(rsan[..., 0])
-            ind_an = torch.add(ind_an, i)
-            ind_an = torch.unsqueeze(ind_an, -1)
-            tt.append(torch.cat((rsan, ind_an), -1))
-        for i in range(len(tt)):
-            tt[i] = torch.reshape(tt[i], (3, nimg * gc[i]**2, tt[i].shape[4]))
-        targets = torch.cat(tt, dim=1)
+            for anc in range(rsan.shape[0]):
+                ind_an = torch.zeros_like(rsan[..., 0][anc])
+                ind_an = torch.add(ind_an, anc)
+                ind_an = torch.unsqueeze(ind_an, -1)
+                tt.append(torch.cat((rsan[anc], ind_an), -1))
+            for each_an in range(rsan.shape[0]):
+                tt[each_an+3*i] = torch.unsqueeze(tt[each_an+3*i], 0)
+                tt[each_an+3*i] = torch.reshape(tt[each_an+3*i], (1, nimg * gc[i]**2, tt[each_an+3*i].shape[-1]))
+        an0 = torch.cat((tt[0], tt[3], tt[6]), 1)
+        an1 = torch.cat((tt[1], tt[4], tt[7]), 1)
+        an2 = torch.cat((tt[2], tt[5], tt[8]), 1)
+        targets_fin = torch.cat((an0, an1, an2), 0)
+        # 3 x all bbox x 9 (here 3 for anchor)
+        # 9: 1 img_id,  4 coordinates, 3 cls (last bg), 1 anchor index
+        # now need to divide the targets into 3 folds according to grid choice, for later for loop
+        targets_finfin = []
+        targets_finfin.append(targets_fin[:, : (nimg * 80 ** 2), :]) # grid 80
+        targets_finfin.append(targets_fin[:, (nimg * 80 ** 2):(nimg * 80 ** 2 + nimg * 40 ** 2), :]) # grid 40
+        targets_finfin.append(targets_fin[:, (nimg * 80 ** 2 + nimg * 40 ** 2):, :]) # grid 20
+
         gain = torch.ones(num_entry+1, device=targets.device)  # normalized to gridspace gain
 
         g = 0.5  # bias
@@ -342,7 +355,8 @@ class ComputeLoss:
             gain[1:5] = torch.tensor(p[i].shape)[[3, 2, 3, 2]]  # xyxy gain
 
             # Match targets to anchors
-            t = targets * gain # what is gain and i dont want it to affect my soft labels
+            t = targets_finfin[i] * gain
+
             if nt:
                 # Matches
                 r = t[:, :, 3:5] / anchors[:, None]  # wh ratio

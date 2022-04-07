@@ -34,4 +34,4 @@ entity: null
 upload_dataset: false
 bbox_interval: -1
 artifact_alias: latest
-save_dir: src/runs/train/exp
+save_dir: src/runs/train/exp2

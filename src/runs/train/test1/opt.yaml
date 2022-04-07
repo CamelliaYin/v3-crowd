@@ -1,9 +1,9 @@
-weights: src/yolov3.pt
+weights: src\yolov3.pt
 cfg: ''
-data: data/single_toy_iid.yaml
-hyp: src/data/hyps/hyp.scratch.yaml
-epochs: 300
-batch_size: 16
+data: data/iid-tv.yaml
+hyp: src\data\hyps\hyp.scratch.yaml
+epochs: 15
+batch_size: 20
 imgsz: 640
 rect: false
 resume: false
@@ -20,8 +20,8 @@ single_cls: false
 adam: false
 sync_bn: false
 workers: 8
-project: src/runs/train
-name: exp
+project: src\runs\train
+name: test1
 exist_ok: false
 quad: false
 linear_lr: false
@@ -34,4 +34,4 @@ entity: null
 upload_dataset: false
 bbox_interval: -1
 artifact_alias: latest
-save_dir: src/runs/train/exp
+save_dir: src\runs\train\test1
