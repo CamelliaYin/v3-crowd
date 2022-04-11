@@ -383,12 +383,15 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
                         each_pred = torch.clone(pred[i])
                         pred_nor.append(each_pred)
                     # calculate the softmax in the last 3 terms
+                    pred_nor_sm = []
                     for i in range(len(pred_nor)):
-                        pred_nor[i][..., 4:] = torch.log(f_sm(pred_nor[i][..., 4:]))
+                        pred_nor_sm.append(torch.cat((pred_nor[i][...,:4],torch.log(f_sm(pred_nor[i][..., 4:]))), dim = -1))
+                    # for i in range(len(pred_nor)):
+                    #     pred_nor[i][..., 4:] = torch.log(f_sm(pred_nor[i][..., 4:]))
                     # prepare pred for bcc(): extract pred in shape IXBX3
                     pred_oc = []
-                    for i in range(len(pred_nor)):
-                        pred_oc.append(torch.flatten(pred_nor[i], start_dim=1, end_dim=-2)[:,:,4:])
+                    for i in range(len(pred_nor_sm)):
+                        pred_oc.append(torch.flatten(pred_nor_sm[i], start_dim=1, end_dim=-2)[:,:,4:])
                     batch_pred = torch.cat((pred_oc[0], pred_oc[1], pred_oc[2]), 1)
                     # obtain inferred label via bcc
                     batch_qtargets, batch_pcm['variational'], batch_lb = BCC(target_volunteers_bcc, batch_pred,
@@ -404,7 +407,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
                         batch_qtargets_yolo = torch.cat([batch_qtargets_xywh, batch_qtargets_lowdim],
                                                 dim=-1)  # imageid, 4 locations, 3 cls
                     model.train()
-                    loss, loss_items = compute_loss(pred_nor, batch_qtargets_yolo.to(device))  # loss scaled by batch_size
+                    loss, loss_items = compute_loss(pred_nor_sm, batch_qtargets_yolo.to(device))  # loss scaled by batch_size
                 else:
                     loss, loss_items = compute_loss(pred, targets.to(device))
                 if RANK != -1:
@@ -489,14 +492,14 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
                 break
 
             # check for bcc convergence
-        try:
-            if epoch > start_epoch and torch.abs((batch_lb - old_lb) / old_lb) < bcc_params['convergence_threshold']:
-                print('Convergence reached!')
-                break
-            else:
-                old_lb = batch_lb
-        except IndexError:
-            pass
+        # try:
+        #     if epoch > start_epoch and torch.abs((batch_lb - old_lb) / old_lb) < bcc_params['convergence_threshold']:
+        #         print('Convergence reached!')
+        #         break
+        #     else:
+        #         old_lb = batch_lb
+        # except IndexError:
+        #     pass
 
         try:
             del batch_pred, batch_qtargets, batch_qtargets_yolo
@@ -748,7 +751,8 @@ def run(**kwargs):
 
 if __name__ == "__main__":
     opt = parse_opt()
-    opt.data = 'data/single_toy_bcc.yaml'
-    opt.epochs = 1
+    opt.data = 'data/bcc-tv.yaml'
+    opt.epochs = 3
     opt.batch_size = 16
+    torch.autograd.set_detect_anomaly(True)
     main(opt)

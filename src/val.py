@@ -164,6 +164,8 @@ def run(data,
     dt, p, r, f1, mp, mr, map50, map = [0.0, 0.0, 0.0], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
     loss = torch.zeros(3, device=device)
     jdict, stats, ap, ap_class = [], [], [], []
+    # conf_thres_values = [0.001, 0.01, 0.1, 0.25]
+
     pbar = tqdm(dataloader, desc=s, ncols=NCOLS, bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')  # progress bar
     for batch_i, (im, targets, paths, shapes) in enumerate(pbar):
         t1 = time_sync()
@@ -188,7 +190,8 @@ def run(data,
         targets[:, 2:] *= torch.Tensor([width, height, width, height]).to(device)  # to pixels
         lb = [targets[targets[:, 0] == i, 1:] for i in range(nb)] if save_hybrid else []  # for autolabelling
         t3 = time_sync()
-        out = non_max_suppression(out, conf_thres=0.25, iou_thres=0.45, labels=lb, multi_label=True, agnostic=single_cls)
+        out = non_max_suppression(out, conf_thres=0.1, iou_thres=0.45, labels=lb, multi_label=True, agnostic=single_cls)
+        # default: conf_thres = 0.25
         dt[2] += time_sync() - t3
 
         # Metrics

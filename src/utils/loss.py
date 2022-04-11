@@ -324,9 +324,9 @@ class ComputeLoss:
             rsan = torch.transpose(rs_img[i], 0, 1)
             for anc in range(rsan.shape[0]):
                 ind_an = torch.zeros_like(rsan[..., 0][anc])
-                ind_an = torch.add(ind_an, anc)
-                ind_an = torch.unsqueeze(ind_an, -1)
-                tt.append(torch.cat((rsan[anc], ind_an), -1))
+                ind_an_1 = torch.add(ind_an, anc)
+                ind_an_2 = torch.unsqueeze(ind_an_1, -1)
+                tt.append(torch.cat((rsan[anc], ind_an_2), -1))
             for each_an in range(rsan.shape[0]):
                 tt[each_an+3*i] = torch.unsqueeze(tt[each_an+3*i], 0)
                 tt[each_an+3*i] = torch.reshape(tt[each_an+3*i], (1, nimg * gc[i]**2, tt[each_an+3*i].shape[-1]))
