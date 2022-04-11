@@ -433,6 +433,16 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
         callbacks.run('on_train_end', last, best, plots, epoch, results)
         LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}")
 
+    # Deletes yolov3.pt, as well as best.pt and last.pt weights (if toggled in otp)
+    if opt.toggle_save_weights == False:
+        if os.path.exists(os.path.join(w , "last.pt")):
+            os.remove(os.path.join(w , "last.pt"))
+        if os.path.exists(os.path.join(w , "best.pt")):
+            os.remove(os.path.join(w , "best.pt"))
+
+    if os.path.exists("yolov3.pt"):
+        os.remove("yolov3.pt")
+
     torch.cuda.empty_cache()
     return results
 
@@ -471,6 +481,7 @@ def parse_opt(known=False):
     parser.add_argument('--freeze', type=int, default=0, help='Number of layers to freeze. backbone=10, all=24')
     parser.add_argument('--save-period', type=int, default=-1, help='Save checkpoint every x epochs (disabled if < 1)')
     parser.add_argument('--local_rank', type=int, default=-1, help='DDP parameter, do not modify')
+    parser.add_argument('--toggle_save_weights', type=bool, default=False, help='True to save best and last weights,  False to not save any weights after training')
 
     # Weights & Biases arguments
     parser.add_argument('--entity', default=None, help='W&B: Entity')
@@ -622,5 +633,6 @@ def run(**kwargs):
 
 if __name__ == "__main__":
     opt = parse_opt()
-    opt.data = 'data/single_toy_iid.yaml'
+    opt.data = '../data/single_toy_iid.yaml'
+    opt.epochs = 5
     main(opt)

@@ -190,3 +190,4 @@ def VB_iteration(X, nn_output, alpha_volunteers, alpha0_volunteers, torchMode=Fa
     lower_bound_likelihood = compute_lower_bound_likelihood(alpha0_volunteers, alpha_volunteers, q_t, rho, nn_output, torchMode)
 
     return q_t, alpha_volunteers, lower_bound_likelihood
+

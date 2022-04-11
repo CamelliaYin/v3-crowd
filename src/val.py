@@ -32,6 +32,7 @@ from utils.general import (LOGGER, NCOLS, box_iou, check_dataset, check_img_size
 from utils.metrics import ConfusionMatrix, ap_per_class
 from utils.plots import output_to_target, plot_images, plot_val_study
 from utils.torch_utils import select_device, time_sync
+from utils.loss import ComputeLoss_val
 
 
 def save_one_txt(predn, save_conf, shape, file):
@@ -106,10 +107,11 @@ def run(data,
         save_dir=Path(''),
         plots=True,
         callbacks=Callbacks(),
-        compute_loss=None,
+        compute_loss_val=None,
         ):
     # Initialize/load model and set device
     training = model is not None
+    compute_loss_val = ComputeLoss_val(model)
     if training:  # called by train.py
         device, pt = next(model.parameters()).device, True  # get model device, PyTorch model
 
@@ -179,14 +181,14 @@ def run(data,
         dt[1] += time_sync() - t2
 
         # Loss
-        if compute_loss:
-            loss += compute_loss([x.float() for x in train_out], targets)[1]  # box, obj, cls
+        if compute_loss_val:
+            loss += compute_loss_val([x.float() for x in train_out], targets)[1]  # box, obj, cls
 
         # NMS
         targets[:, 2:] *= torch.Tensor([width, height, width, height]).to(device)  # to pixels
         lb = [targets[targets[:, 0] == i, 1:] for i in range(nb)] if save_hybrid else []  # for autolabelling
         t3 = time_sync()
-        out = non_max_suppression(out, conf_thres, iou_thres, labels=lb, multi_label=True, agnostic=single_cls)
+        out = non_max_suppression(out, conf_thres=0.25, iou_thres=0.45, labels=lb, multi_label=True, agnostic=single_cls)
         dt[2] += time_sync() - t3
 
         # Metrics

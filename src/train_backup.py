@@ -445,9 +445,10 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
             ema.update_attr(model, include=['yaml', 'nc', 'hyp', 'names', 'stride', 'class_weights'])
             final_epoch = (epoch + 1 == epochs) or stopper.possible_stop
             if not noval or final_epoch:  # Calculate mAP
-                results, maps, _ = val.run(data_dict, torchMode, vol_id_map, file_volunteers_dict, cls_num, bcc_epoch, val_dataset, opt,
-                                           batch_size=batch_size // WORLD_SIZE * 2,
-                                           imgsz=imgsz,
+                results, maps, _ = val.run(data_dict, torchMode, vol_id_map, file_volunteers_dict, cls_num, bcc_epoch, val_dataset,
+                                           opt,
+                                           # batch_size=batch_size // WORLD_SIZE * 2,
+                                           # imgsz=imgsz,
                                            model=ema.ema,
                                            single_cls=single_cls,
                                            dataloader=val_loader,
@@ -524,19 +525,19 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
                 strip_optimizer(f)  # strip optimizers
                 if f is best:
                     LOGGER.info(f'\nValidating {f}...')
-                    results, _, _ = val.run(data_dict, torchMode, vol_id_map, file_volunteers_dict, cls_num, bcc_epoch, val_dataset, opt,
-                                            batch_size=batch_size // WORLD_SIZE * 2,
-                                            imgsz=imgsz,
+                    results, _, _ = val.run(data_dict, torchMode, vol_id_map, file_volunteers_dict, cls_num, bcc_epoch, val_dataset,
+                                            opt,
+                                            # batch_size=batch_size // WORLD_SIZE * 2,
+                                            # imgsz=imgsz,
                                             model=attempt_load(f, device).half(),
-                                            iou_thres=0.65 if is_coco else 0.60,  # best pycocotools results at 0.65
+                                            # iou_thres=0.65 if is_coco else 0.60,  # best pycocotools results at 0.65
                                             single_cls=single_cls,
                                             dataloader=val_loader,
                                             save_dir=save_dir,
                                             save_json=is_coco,
                                             verbose=True,
                                             plots=True,
-                                            callbacks=callbacks,
-                                            compute_loss=compute_loss)  # val best model with plots
+                                            callbacks=callbacks)  # val best model with plots
                     if is_coco:
                         callbacks.run('on_fit_epoch_end', list(mloss) + list(results) + lr, epoch, best_fitness, fi)
 
@@ -748,5 +749,6 @@ def run(**kwargs):
 if __name__ == "__main__":
     opt = parse_opt()
     opt.data = 'data/single_toy_bcc.yaml'
-    # opt.bcc_epoch = 0
+    opt.epochs = 1
+    opt.batch_size = 16
     main(opt)
