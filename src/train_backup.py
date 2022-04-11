@@ -349,6 +349,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
                 target_volunteers_bcc = target_volunteers_bcc.to(device)
             ni = i + nb * epoch  # number integrated batches (since train start)
             imgs = imgs.to(device, non_blocking=True).float() / 255  # uint8 to float32, 0-255 to 0.0-1.0
+            # imgs = torch.unsqueeze(torch.mean(imgss, dim=1), dim=1)
 
             # Warmup
             if ni <= nw:
@@ -752,7 +753,10 @@ def run(**kwargs):
 if __name__ == "__main__":
     opt = parse_opt()
     opt.data = 'data/bcc-tv.yaml'
-    opt.epochs = 3
+    opt.epochs = 300
     opt.batch_size = 16
-    torch.autograd.set_detect_anomaly(True)
+    opt.weights = ''
+    opt.cfg = 'yolov3.yaml'
+    # torch.autograd.set_detect_anomaly(True)
     main(opt)
+
