@@ -3,6 +3,8 @@
 PyTorch utils
 """
 
+import numpy as np
+import random
 import datetime
 import math
 import os
@@ -25,6 +27,12 @@ try:
 except ImportError:
     thop = None
 
+def setup_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.deterministic = True
 
 @contextmanager
 def torch_distributed_zero_first(local_rank: int):
@@ -36,7 +44,6 @@ def torch_distributed_zero_first(local_rank: int):
     yield
     if local_rank == 0:
         dist.barrier(device_ids=[0])
-
 
 def date_modified(path=__file__):
     # return human-readable file modification date, i.e. '2021-3-26'

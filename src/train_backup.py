@@ -53,6 +53,9 @@ from utils.torch_utils import EarlyStopping, ModelEMA, de_parallel, select_devic
 
 from utils.inferred_targets import VB_iteration as BCC
 from utils.bcc_prep import extract_volunteers, get_file_volunteers_dict, init_bcc_params, compute_param_confusion_matrices, qt2yolo_soft, convert_target_volunteers_yolo2bcc
+from utils.torch_utils import setup_seed
+
+setup_seed(10)
 
 LOCAL_RANK = int(os.getenv('LOCAL_RANK', -1))  # https://pytorch.org/docs/stable/elastic/run.html
 RANK = int(os.getenv('RANK', -1))
@@ -118,6 +121,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
 
 
     # Model
+
     check_suffix(weights, '.pt')  # check weights
     pretrained = weights.endswith('.pt')
     if pretrained:
@@ -753,7 +757,7 @@ def run(**kwargs):
 if __name__ == "__main__":
     opt = parse_opt()
     opt.data = 'data/bcc-tv.yaml'
-    opt.epochs = 300
+    opt.epochs = 3
     opt.batch_size = 16
     opt.weights = ''
     opt.cfg = 'yolov3.yaml'
