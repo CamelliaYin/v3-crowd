@@ -326,16 +326,23 @@ def plot_pr_curve(px, py, ap, save_dir='pr_curve.png', names=()):
 
     if 0 < len(names) < 21:  # display per-class legend if < 21 classes
         for i, y in enumerate(py.T):
-            ax.plot(px, y, linewidth=1, label=f'{names[i]} {ap[i, 0]:.3f}')  # plot(recall, precision)
+            ax.plot(px, y, linewidth=3, label=f'{names[i]} {ap[i, 0]:.3f}')  # plot(recall, precision)
     else:
-        ax.plot(px, py, linewidth=1, color='grey')  # plot(recall, precision)
+        ax.plot(px, py, linewidth=2, color='grey')  # plot(recall, precision)
 
-    ax.plot(px, py.mean(1), linewidth=3, color='blue', label='all classes %.3f mAP@0.5' % ap[:, 0].mean())
-    ax.set_xlabel('Recall')
-    ax.set_ylabel('Precision')
+    # ax.plot(px, py.mean(1), linewidth=3, color='blue', label='all classes %.3f mAP@0.5' % ap[:, 0].mean())
+    # ax.set_xlabel('Recall')
+    # ax.set_ylabel('Precision')
+    ax.plot(px, py.mean(1), linewidth=3, linestyle='--', color='blue', label='all classes %.3f mAP@0.5' % ap[:, 0].mean())
+    ax.grid(color='grey', linestyle='--', linewidth=1)
+    ax.set_xlabel('Recall', fontsize=18)
+    ax.set_ylabel('Precision', fontsize=18)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
-    plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
+    # plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
+    plt.xticks(fontsize=10)
+    plt.yticks(fontsize=10)
+    plt.legend(bbox_to_anchor=(0.6, 1), loc="upper left", prop={'size': 11})
     fig.savefig(Path(save_dir), dpi=250)
     plt.close()
 
@@ -346,16 +353,19 @@ def plot_mc_curve(px, py, save_dir='mc_curve.png', names=(), xlabel='Confidence'
 
     if 0 < len(names) < 21:  # display per-class legend if < 21 classes
         for i, y in enumerate(py):
-            ax.plot(px, y, linewidth=1, label=f'{names[i]}')  # plot(confidence, metric)
+            ax.plot(px, y, linewidth=3, label=f'{names[i]}')  # plot(confidence, metric)
     else:
-        ax.plot(px, py.T, linewidth=1, color='grey')  # plot(confidence, metric)
+        ax.plot(px, py.T, linewidth=2, color='grey')  # plot(confidence, metric)
 
     y = py.mean(0)
-    ax.plot(px, y, linewidth=3, color='blue', label=f'all classes {y.max():.2f} at {px[y.argmax()]:.3f}')
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
+    ax.plot(px, y, linewidth=3, linestyle='--', color='blue', label=f'all classes {y.max():.2f} at {px[y.argmax()]:.3f}')
+    ax.grid(color='grey', linestyle='--', linewidth=1)
+    ax.set_xlabel(xlabel, fontsize=18)
+    ax.set_ylabel(ylabel, fontsize=18)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
-    plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
+    plt.xticks(fontsize=10)
+    plt.yticks(fontsize=10)
+    plt.legend(bbox_to_anchor=(0.6, 1), loc="upper left", prop={'size': 11})
     fig.savefig(Path(save_dir), dpi=250)
     plt.close()

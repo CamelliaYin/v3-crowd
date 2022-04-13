@@ -638,7 +638,7 @@ def clip_coords(boxes, shape):
 
 
 def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=None, agnostic=False, multi_label=False,
-                        labels=(), max_det=300):
+                        labels=(), max_det=5000):
     """Runs Non-Maximum Suppression (NMS) on inference results
 
     Returns:
