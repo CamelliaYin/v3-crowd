@@ -634,7 +634,7 @@ if __name__ == "__main__":
     opt.data = 'data/Calc_Removed_New_Test_50min_Crowdsourced.yaml'
     opt.exist_ok = False
     opt.batch_size = 16
-    opt.epochs = 300
+    opt.epochs = 500
     opt.weights = ''
     opt.cfg = 'yolov3.yaml'
     main(opt)
