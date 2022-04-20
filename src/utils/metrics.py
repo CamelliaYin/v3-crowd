@@ -2,16 +2,14 @@
 """
 Model validation metrics
 """
-import csv
+
 import math
-import os.path
 import warnings
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import pandas as pd
 
 
 def fitness(x):
@@ -75,7 +73,6 @@ def ap_per_class(tp, conf, pred_cls, target_cls, plot=False, save_dir='.', names
     f1 = 2 * p * r / (p + r + 1e-16)
     names = [v for k, v in names.items() if k in unique_classes]  # list: only classes that have data
     names = {i: v for i, v in enumerate(names)}  # to dict
-    SavePlotMetricsToCSV(px, py, ap, f1, p, r, save_dir, names)
     if plot:
         plot_pr_curve(px, py, ap, Path(save_dir) / 'PR_curve.png', names)
         plot_mc_curve(px, f1, Path(save_dir) / 'F1_curve.png', names, ylabel='F1')
@@ -84,29 +81,6 @@ def ap_per_class(tp, conf, pred_cls, target_cls, plot=False, save_dir='.', names
 
     i = f1.mean(0).argmax()  # max F1 index
     return p[:, i], r[:, i], ap, f1[:, i], unique_classes.astype('int32')
-
-
-def SavePlotMetricsToCSV(px, py, p, r, f1, ap, save_dir, names):
-    """ saves all the metrics used to compute all cureves at each epoch
-    # Arguments
-        px:         line spacing for x (array)
-        py:         line spacing for y  (array)
-        ap:         average precision metrics (2d array)
-        f1:         f1 metrics (2d array)
-        p:          precision metrics (2d array)
-        r:          precision metrics (2d array)
-        save_dir:   save directory (windowsPath)
-        names:      class names (dict)
-    # Returns
-        NULL [Saves csv of input data]
-    """
-    if not os.path.exists(Path(save_dir) / 'plots.csv'):
-        initCSV = pd.DataFrame([[px, py, p, r, f1, ap, save_dir,names]], columns=['lsX', 'lsY', 'precision', 'recall', 'f1', 'average_precision', 'directory', 'classes'])
-        initCSV.to_csv(Path(save_dir) / 'plots.csv')
-    else:
-        newDF = pd.DataFrame([[px, py, p, r, f1, ap, save_dir, names]], columns=['lsX', 'lsY', 'precision', 'recall', 'f1', 'average_precision', 'directory', 'classes'])
-        newDF.to_csv(Path(save_dir) / 'plots.csv', mode='a', header=False)
-    return
 
 
 def compute_ap(recall, precision):
@@ -326,16 +300,19 @@ def plot_pr_curve(px, py, ap, save_dir='pr_curve.png', names=()):
 
     if 0 < len(names) < 21:  # display per-class legend if < 21 classes
         for i, y in enumerate(py.T):
-            ax.plot(px, y, linewidth=1, label=f'{names[i]} {ap[i, 0]:.3f}')  # plot(recall, precision)
+            ax.plot(px, y, linewidth=3, label=f'{names[i]} {ap[i, 0]:.3f}')  # plot(recall, precision)
     else:
-        ax.plot(px, py, linewidth=1, color='grey')  # plot(recall, precision)
+        ax.plot(px, py, linewidth=2, color='grey')  # plot(recall, precision)
 
-    ax.plot(px, py.mean(1), linewidth=3, color='blue', label='all classes %.3f mAP@0.5' % ap[:, 0].mean())
-    ax.set_xlabel('Recall')
-    ax.set_ylabel('Precision')
+    ax.plot(px, py.mean(1), linewidth=3, linestyle='--', color='blue', label='all classes %.3f mAP@0.5' % ap[:, 0].mean())
+    ax.grid(color='grey', linestyle='--', linewidth=1)
+    ax.set_xlabel('Recall', fontsize=18)
+    ax.set_ylabel('Precision', fontsize=18)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
-    plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
+    plt.xticks(fontsize=10)
+    plt.yticks(fontsize=10)
+    plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left", prop={'size': 11})
     fig.savefig(Path(save_dir), dpi=250)
     plt.close()
 

@@ -1,0 +1,22 @@
+{
+    "os": "macOS-10.16-x86_64-i386-64bit",
+    "python": "3.10.0",
+    "heartbeatAt": "2022-04-08T10:35:30.208760",
+    "startedAt": "2022-04-08T10:35:28.011512",
+    "docker": null,
+    "cpu_count": 12,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/Users/camellia/Desktop/OneDrive - University of Surrey/v3-crowd/src/train_backup.py",
+    "codePath": "src/train_backup.py",
+    "git": {
+        "remote": "https://github.com/CamelliaYin/v3-crowd.git",
+        "commit": "a5dfa0a2db9e4ddbcff5503a76e5ada2999a5433"
+    },
+    "email": "87137690+CamelliaYin@users.noreply.github.com",
+    "root": "/Users/camellia/Desktop/OneDrive - University of Surrey/v3-crowd",
+    "host": "Ruoqings-MBP",
+    "username": "camellia",
+    "executable": "/Users/camellia/opt/anaconda3/envs/imp/bin/python"
+}

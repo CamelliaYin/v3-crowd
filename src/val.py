@@ -32,6 +32,7 @@ from utils.general import (LOGGER, NCOLS, box_iou, check_dataset, check_img_size
 from utils.metrics import ConfusionMatrix, ap_per_class
 from utils.plots import output_to_target, plot_images, plot_val_study
 from utils.torch_utils import select_device, time_sync
+from utils.loss import ComputeLoss_val
 
 
 def save_one_txt(predn, save_conf, shape, file):
@@ -106,10 +107,11 @@ def run(data,
         save_dir=Path(''),
         plots=True,
         callbacks=Callbacks(),
-        compute_loss=None,
+        compute_loss_val=None,
         ):
     # Initialize/load model and set device
     training = model is not None
+    compute_loss_val = ComputeLoss_val(model)
     if training:  # called by train.py
         device, pt = next(model.parameters()).device, True  # get model device, PyTorch model
 
@@ -162,6 +164,8 @@ def run(data,
     dt, p, r, f1, mp, mr, map50, map = [0.0, 0.0, 0.0], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
     loss = torch.zeros(3, device=device)
     jdict, stats, ap, ap_class = [], [], [], []
+    # conf_thres_values = [0.001, 0.01, 0.1, 0.25]
+
     pbar = tqdm(dataloader, desc=s, ncols=NCOLS, bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')  # progress bar
     for batch_i, (im, targets, paths, shapes) in enumerate(pbar):
         t1 = time_sync()
@@ -179,14 +183,15 @@ def run(data,
         dt[1] += time_sync() - t2
 
         # Loss
-        if compute_loss:
-            loss += compute_loss([x.float() for x in train_out], targets)[1]  # box, obj, cls
+        if compute_loss_val:
+            loss += compute_loss_val([x.float() for x in train_out], targets)[1]  # box, obj, cls
 
         # NMS
         targets[:, 2:] *= torch.Tensor([width, height, width, height]).to(device)  # to pixels
         lb = [targets[targets[:, 0] == i, 1:] for i in range(nb)] if save_hybrid else []  # for autolabelling
         t3 = time_sync()
-        out = non_max_suppression(out, conf_thres, iou_thres, labels=lb, multi_label=True, agnostic=single_cls)
+        out = non_max_suppression(out, conf_thres=0.01, iou_thres=0.45, labels=lb, multi_label=True, agnostic=single_cls)
+        # default: conf_thres = 0.25
         dt[2] += time_sync() - t3
 
         # Metrics
@@ -237,7 +242,7 @@ def run(data,
     # Compute metrics
     stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy
     if len(stats) and stats[0].any():
-        p, r, ap, f1, ap_class = ap_per_class(*stats, plot=plots, save_dir=save_dir, names=names) # PLOTS THE CURVES
+        p, r, ap, f1, ap_class = ap_per_class(*stats, plot=plots, save_dir=save_dir, names=names)
         ap50, ap = ap[:, 0], ap.mean(1)  # AP@0.5, AP@0.5:0.95
         mp, mr, map50, map = p.mean(), r.mean(), ap50.mean(), ap.mean()
         nt = np.bincount(stats[3].astype(np.int64), minlength=nc)  # number of targets per class
