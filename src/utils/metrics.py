@@ -188,7 +188,7 @@ class ConfusionMatrix:
     def matrix(self):
         return self.matrix
 
-    def plot(self, normalize=True, save_dir='', names=()):
+    def plot(self, normalize=True, save_dir='', names=(), prefix='', suffix=''):
         try:
             import seaborn as sn
 
@@ -205,8 +205,25 @@ class ConfusionMatrix:
                            yticklabels=names + ['background FN'] if labels else "auto").set_facecolor((1, 1, 1))
             fig.axes[0].set_xlabel('True')
             fig.axes[0].set_ylabel('Predicted')
-            fig.savefig(Path(save_dir) / 'confusion_matrix.png', dpi=250)
+            pref_sep = '' if prefix == '' else '_'
+            suff_sep = '' if suffix == '' else '_'
+            fig.savefig(Path(save_dir) / f'{prefix}{pref_sep}confusion_matrix{suff_sep}{suffix}.png', dpi=250)
+            # fig.savefig(Path(save_dir) / 'confusion_matrix.png', dpi=250)
             plt.close()
+
+            fig = plt.figure(figsize=(12, 9), tight_layout=True)
+            sn.set(font_scale=1.0 if self.nc < 50 else 0.8)  # for label size
+            labels = (0 < len(names) < 99) and len(names) == self.nc  # apply names to ticklabels
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')  # suppress empty matrix RuntimeWarning: All-NaN slice encountered
+                sn.heatmap(self.matrix, annot=self.nc < 30, annot_kws={"size": 8}, cmap='Blues', fmt='.2f', square=True,
+                           xticklabels=names + ['background FP'] if labels else "auto",
+                           yticklabels=names + ['background FN'] if labels else "auto").set_facecolor((1, 1, 1))
+            fig.axes[0].set_xlabel('True')
+            fig.axes[0].set_ylabel('Predicted')
+            fig.savefig(Path(save_dir) / f'{prefix}{pref_sep}confusion_matrix_abs{suff_sep}{suffix}.png', dpi=250)
+            plt.close()
+
         except Exception as e:
             print(f'WARNING: ConfusionMatrix plot failure: {e}')
 
@@ -342,7 +359,7 @@ def plot_pr_curve(px, py, ap, save_dir='pr_curve.png', names=()):
     # plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
     plt.xticks(fontsize=10)
     plt.yticks(fontsize=10)
-    plt.legend(bbox_to_anchor=(0.6, 1), loc="upper left", prop={'size': 11})
+    plt.legend(bbox_to_anchor=(0.6, 1), loc="upper left", prop={'size': 15})
     fig.savefig(Path(save_dir), dpi=250)
     plt.close()
 
