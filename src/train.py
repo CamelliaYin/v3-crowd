@@ -370,19 +370,6 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
                                            plots=False,
                                            callbacks=callbacks,
                                            compute_loss=compute_loss)
-                train_results, train_maps, _ = val.run(data_dict,
-                                                       batch_size=batch_size // WORLD_SIZE * 2,
-                                                       imgsz=imgsz,
-                                                       model=ema.ema,
-                                                       single_cls=single_cls,
-                                                       dataloader=train_loader,
-                                                       save_dir=save_dir,
-                                                       save_json=is_coco and final_epoch,
-                                                       verbose=nc < 50 and final_epoch,
-                                                       plots=plots and final_epoch,
-                                                       callbacks=callbacks,
-                                                       compute_loss=compute_loss,
-                                                       prefix='train')
 
             # Update best mAP
             fi = fitness(np.array(results).reshape(1, -1))  # weighted combination of [P, R, mAP@.5, mAP@.5-.95]
@@ -644,10 +631,10 @@ def run(**kwargs):
 
 if __name__ == "__main__":
     opt = parse_opt()
-    opt.data = 'data/single_toy_iid.yaml'
+    opt.data = 'data/Calc_Removed_New_Test_50min_Crowdsourced.yaml'
     opt.exist_ok = False
     opt.batch_size = 16
-    opt.epochs = 1
+    opt.epochs = 500
     opt.weights = ''
     opt.cfg = 'yolov3.yaml'
     main(opt)

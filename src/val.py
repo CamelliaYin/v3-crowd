@@ -16,7 +16,6 @@ from threading import Thread
 import numpy as np
 import torch
 from tqdm import tqdm
-import pickle
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # root directory
@@ -108,7 +107,6 @@ def run(data,
         plots=True,
         callbacks=Callbacks(),
         compute_loss=None,
-        prefix=''
         ):
     # Initialize/load model and set device
     training = model is not None
@@ -157,21 +155,15 @@ def run(data,
                                        prefix=colorstr(f'{task}: '))[0]
 
     seen = 0
-    # confusion_matrix = ConfusionMatrix(nc=nc)
+    confusion_matrix = ConfusionMatrix(nc=nc)
     names = {k: v for k, v in enumerate(model.names if hasattr(model, 'names') else model.module.names)}
     class_map = coco80_to_coco91_class() if is_coco else list(range(1000))
     s = ('%20s' + '%11s' * 6) % ('Class', 'Images', 'Labels', 'P', 'R', 'mAP@.5', 'mAP@.5:.95')
     dt, p, r, f1, mp, mr, map50, map = [0.0, 0.0, 0.0], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
     loss = torch.zeros(3, device=device)
     jdict, stats, ap, ap_class = [], [], [], []
-    conf_thres_values = [0.001, 0.01, 0.1, 0.25] ##
-    cms = [ConfusionMatrix(nc=nc, conf=conf_thres_value) for conf_thres_value in conf_thres_values]
     pbar = tqdm(dataloader, desc=s, ncols=NCOLS, bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')  # progress bar
     for batch_i, (im, targets, paths, shapes) in enumerate(pbar):
-        intermediate_path = os.path.join(save_dir, 'intermediate')
-        if not os.path.exists(intermediate_path):
-            os.mkdir(intermediate_path)
-        batch_path = os.path.join(intermediate_path, str(batch_i))
         t1 = time_sync()
         if pt:
             im = im.to(device, non_blocking=True)
@@ -200,10 +192,6 @@ def run(data,
 
         # Metrics
         for si, pred in enumerate(out):
-            batch_image_path = '.'.join([batch_path, paths[si].split(os.sep)[-1]])
-            batch_image_predn_path = '.'.join([batch_image_path, 'predn.pkl'])
-            batch_image_labelsn_path = '.'.join([batch_image_path, 'labelsn.pkl'])
-
             labels = targets[targets[:, 0] == si, 1:]
             nl = len(labels)
             tcls = labels[:, 0].tolist() if nl else []  # target class
@@ -220,7 +208,6 @@ def run(data,
                 pred[:, 5] = 0
             predn = pred.clone()
             scale_coords(im[si].shape[1:], predn[:, :4], shape, shapes[si][1])  # native-space pred
-            pickle.dump(predn.cpu().detach().numpy(), open(batch_image_predn_path, 'wb'))
 
             # Evaluate
             if nl:
@@ -229,16 +216,10 @@ def run(data,
                 labelsn = torch.cat((labels[:, 0:1], tbox), 1)  # native-space labels
                 correct = process_batch(predn, labelsn, iouv)
                 if plots:
-                    for conf_thres_id, conf_thres_value in enumerate(conf_thres_values):
-                        cms[conf_thres_id].process_batch(predn, labelsn)
-                else:
-                    correct = torch.zeros(pred.shape[0], niou, dtype=torch.bool)
-                stats.append((correct.cpu(), pred[:, 4].cpu(), pred[:, 5].cpu(), tcls))  # (correct, conf, pcls, tcls)
-            #     if plots:
-            #         confusion_matrix.process_batch(predn, labelsn)
-            # else:
-            #     correct = torch.zeros(pred.shape[0], niou, dtype=torch.bool)
-            # stats.append((correct.cpu(), pred[:, 4].cpu(), pred[:, 5].cpu(), tcls))  # (correct, conf, pcls, tcls)
+                    confusion_matrix.process_batch(predn, labelsn)
+            else:
+                correct = torch.zeros(pred.shape[0], niou, dtype=torch.bool)
+            stats.append((correct.cpu(), pred[:, 4].cpu(), pred[:, 5].cpu(), tcls))  # (correct, conf, pcls, tcls)
 
             # Save/log
             if save_txt:
@@ -249,14 +230,10 @@ def run(data,
 
         # Plot images
         if plots and batch_i < 3:
-            f = save_dir / f'{"val" if prefix == "" else prefix}_batch{batch_i}_labels.jpg'  # labels
+            f = save_dir / f'val_batch{batch_i}_labels.jpg'  # labels
             Thread(target=plot_images, args=(im, targets, paths, f, names), daemon=True).start()
-            f = save_dir / f'{"val" if prefix == "" else prefix}_batch{batch_i}_pred.jpg'  # predictions
+            f = save_dir / f'val_batch{batch_i}_pred.jpg'  # predictions
             Thread(target=plot_images, args=(im, output_to_target(out), paths, f, names), daemon=True).start()
-            # f = save_dir / f'val_batch{batch_i}_labels.jpg'  # labels
-            # Thread(target=plot_images, args=(im, targets, paths, f, names), daemon=True).start()
-            # f = save_dir / f'val_batch{batch_i}_pred.jpg'  # predictions
-            # Thread(target=plot_images, args=(im, output_to_target(out), paths, f, names), daemon=True).start()
 
     # Compute metrics
     stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy
@@ -284,12 +261,8 @@ def run(data,
         LOGGER.info(f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS per image at shape {shape}' % t)
 
     # Plots
-    # if plots:
-    #     confusion_matrix.plot(save_dir=save_dir, names=list(names.values()))
-    #     callbacks.run('on_val_end')
     if plots:
-        for i, conf_thres_value in enumerate(conf_thres_values):
-            cms[i].plot(save_dir=save_dir, names=list(names.values()), prefix=prefix, suffix=str(conf_thres_value))
+        confusion_matrix.plot(save_dir=save_dir, names=list(names.values()))
         callbacks.run('on_val_end')
 
     # Save JSON
