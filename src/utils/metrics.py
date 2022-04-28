@@ -342,7 +342,7 @@ def plot_pr_curve(px, py, ap, save_dir='pr_curve.png', names=()):
     # plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
     plt.xticks(fontsize=10)
     plt.yticks(fontsize=10)
-    plt.legend(bbox_to_anchor=(0.6, 1), loc="upper left", prop={'size': 11})
+    plt.legend(bbox_to_anchor=(0.55, 1), loc="upper left", prop={'size': 13})
     fig.savefig(Path(save_dir), dpi=250)
     plt.close()
 
