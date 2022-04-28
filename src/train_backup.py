@@ -758,7 +758,7 @@ if __name__ == "__main__":
     opt = parse_opt()
     opt.data = '../data/bcc-tv.yaml'
     bcc_epoch = 0
-    opt.epochs = 50
+    opt.epochs = 2
     opt.batch_size = 16
     opt.weights = ''
     opt.cfg = 'yolov3.yaml'
