@@ -631,10 +631,11 @@ def run(**kwargs):
 
 if __name__ == "__main__":
     opt = parse_opt()
-    opt.data = 'data/Calc_Removed_New_Test_50min_Crowdsourced.yaml'
+    opt.data = 'data/Zoon_50min_2perImg_IID.yaml'
     opt.exist_ok = False
     opt.batch_size = 16
-    opt.epochs = 500
+    opt.epochs = 300
     opt.weights = ''
     opt.cfg = 'yolov3.yaml'
+    opt.patience = 0
     main(opt)

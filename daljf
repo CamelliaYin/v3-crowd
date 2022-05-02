@@ -1,0 +1,83 @@
+[33mcommit e78fb167a26d85ad1e4d2c282bd916dd3bdf87f2[m[33m ([m[1;36mHEAD -> [m[1;32mbaseline[m[33m, [m[1;31morigin/baseline[m[33m)[m
+Author: CamelliaYin <87137690+CamelliaYin@users.noreply.github.com>
+Date:   Tue Apr 26 13:20:25 2022 +0100
+
+    more cm metrix added
+
+[33mcommit 686949023eca2ada1b8459762b2a5e1351576fb5[m
+Author: CamelliaYin <ry00042@surrey.ac.uk>
+Date:   Tue Apr 26 11:30:40 2022 +0100
+
+    new-but-confused zoodata added
+
+[33mcommit 38b7f9b95dada3fcfb46e6c8eb178f5f482a36e6[m
+Merge: e624c58c 6f789bec
+Author: CamelliaYin <87137690+CamelliaYin@users.noreply.github.com>
+Date:   Fri Apr 15 11:32:35 2022 +0100
+
+    minor
+
+[33mcommit e624c58ca927bfb0af546a7025f72f686c33386b[m
+Author: CamelliaYin <87137690+CamelliaYin@users.noreply.github.com>
+Date:   Fri Apr 15 11:30:46 2022 +0100
+
+    minor
+
+[33mcommit 6f789bec09ca299655c0ce65a2dccc3a7e74ff8f[m
+Merge: 40848483 c9a25ae6
+Author: CamelliaYin <ry00042@surrey.ac.uk>
+Date:   Wed Apr 13 15:29:18 2022 +0100
+
+    merge opt conf
+
+[33mcommit 40848483862c9f6960bcb23e0afbc4e263d0ec2a[m
+Author: CamelliaYin <ry00042@surrey.ac.uk>
+Date:   Wed Apr 13 15:23:05 2022 +0100
+
+    iid-L not yet
+
+[33mcommit c9a25ae65c72ec8523ca3688bf3e2d97e6eb205f[m
+Author: CamelliaYin <87137690+CamelliaYin@users.noreply.github.com>
+Date:   Wed Apr 13 11:52:03 2022 +0100
+
+    baseline model
+
+[33mcommit 96704113b529f7c3071732c25e413561e1ebb0e6[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m
+Author: Banksylel <37083160+Banksylel@users.noreply.github.com>
+Date:   Mon Apr 4 15:23:48 2022 +0100
+
+    other scripts
+    
+    AAAAAAAAAAAA
+
+[33mcommit 0fd5d5987af1efc12072715c8d70e176004d3b49[m
+Author: Banksylel <37083160+Banksylel@users.noreply.github.com>
+Date:   Mon Apr 4 15:16:10 2022 +0100
+
+    fixes
+    
+    fixes to view_bounding_boxes.ipynb
+
+[33mcommit 2c8a3564c0738888bfb53c086bd15b510b7484d5[m
+Author: Banksylel <37083160+Banksylel@users.noreply.github.com>
+Date:   Fri Mar 25 18:36:48 2022 +0000
+
+    stuff
+    
+    Added a notebook that can display and save a mosaic (you can choose the number of images in the mosaic) of random images with displayed bounding boxes of either a single volunteer or all volunteers.
+    
+    Also added a function to the model that saves the metrics used to calculate the curves  at each epoch, and the final val run. saved as plots.csv
+
+[33mcommit 62b60dff155c8c9e9b2c74c61686882fb754c3b1[m
+Author: Banksylel <37083160+Banksylel@users.noreply.github.com>
+Date:   Thu Mar 24 14:59:35 2022 +0000
+
+    Datasets
+    
+    Datasets added and IID datasets work on the base code
+
+[33mcommit 0e6a71c4c475fe765718d7d1fc6b9334d624f2ea[m
+Author: CamelliaYin <87137690+CamelliaYin@users.noreply.github.com>
+Date:   Thu Mar 24 13:21:38 2022 +0000
+
+    Initial commit
