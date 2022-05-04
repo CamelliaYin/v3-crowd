@@ -92,7 +92,7 @@ def exif_transpose(image):
     return image
 
 
-def create_dataloader(path, imgsz, batch_size, stride, single_cls=False, hyp=None, augment=False, cache=False, pad=0.0,
+def create_dataloader(path, imgsz, batch_size, stride, single_cls=False, hyp=None, augment=False, bcc_aug = False, cache=False, pad=0.0,
                       rect=False, rank=-1, workers=8, image_weights=False, quad=False, prefix='', shuffle=False):
     if rect and shuffle:
         LOGGER.warning('WARNING: --rect is incompatible with DataLoader shuffle, setting shuffle=False')
@@ -100,6 +100,7 @@ def create_dataloader(path, imgsz, batch_size, stride, single_cls=False, hyp=Non
     with torch_distributed_zero_first(rank):  # init dataset *.cache only once if DDP
         dataset = LoadImagesAndLabels(path, imgsz, batch_size,
                                       augment=augment,  # augmentation
+                                      bcc_aug = bcc_aug,
                                       hyp=hyp,  # hyperparameters
                                       rect=rect,  # rectangular batches
                                       cache_images=cache,
@@ -379,7 +380,7 @@ class LoadImagesAndLabels(Dataset):
     #  train_loader/val_loader, loads images and labels for training and validation
     cache_version = 0.6  # dataset labels *.cache version
 
-    def __init__(self, path, img_size=640, batch_size=16, augment=False, hyp=None, rect=False, image_weights=False,
+    def __init__(self, path, img_size=640, batch_size=16, augment=False, bcc_aug = False, hyp=None, rect=False, image_weights=False,
                  cache_images=False, single_cls=False, stride=32, pad=0.0, prefix=''):
         self.img_size = img_size
         self.augment = augment
@@ -390,7 +391,8 @@ class LoadImagesAndLabels(Dataset):
         self.mosaic_border = [-img_size // 2, -img_size // 2]
         self.stride = stride
         self.path = path
-        self.albumentations = Albumentations() if augment else None
+        self.albumentations = Albumentations() if bcc_aug else None
+        self.bcc_aug = bcc_aug
 
         try:
             f = []  # image files
@@ -585,6 +587,7 @@ class LoadImagesAndLabels(Dataset):
                                                  scale=hyp['scale'],
                                                  shear=hyp['shear'],
                                                  perspective=hyp['perspective'])
+
 
         nl = len(labels)  # number of labels
         if nl:

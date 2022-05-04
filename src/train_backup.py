@@ -226,11 +226,13 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
         LOGGER.info('Using SyncBatchNorm()')
 
     aug = opt.augment
+    bccAUG = opt.bcc_augment
     print('Augmentation is: ', aug)
+    print('Augmentation in: ', bccAUG)
 
     # Trainloader
     train_loader, dataset = create_dataloader(train_path, imgsz, batch_size // WORLD_SIZE, gs, single_cls,
-                                              hyp=hyp, augment=aug, cache=opt.cache, rect=opt.rect, rank=LOCAL_RANK,
+                                              hyp=hyp, augment=aug, bcc_aug = opt.bcc_augment, cache=opt.cache, rect=opt.rect, rank=LOCAL_RANK,
                                               workers=workers, image_weights=opt.image_weights, quad=opt.quad,
                                               prefix=colorstr('train: '), shuffle=False)
     mlc = int(np.concatenate(dataset.labels, 0)[:, 0].max())  # max label class
@@ -569,6 +571,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
 def parse_opt(known=False):
     parser = argparse.ArgumentParser()
     parser.add_argument('--bcc_epoch', type=int, default=0, help='start-epoch for BCC+YOLO run; use -1 for no BCC.')
+    parser.add_argument('--bcc_augment', type=bool, default=False, help='True to use bcc friendly augmentation')
     parser.add_argument('--cm_diagonal_prior_hyp', type=float, default=1e-1, help='BCC parameter to determine the diagonal prior for the matrix.')
     parser.add_argument('--convergence_threshold_hyp', type=float, default=1e-6, help='BCC parameter to determine the convergence threshold.')
     parser.add_argument('--weights', type=str, default=ROOT / 'yolov3.pt', help='initial weights path')
@@ -756,12 +759,14 @@ def run(**kwargs):
 
 if __name__ == "__main__":
     opt = parse_opt()
-    opt.data = '../data/bcc-tv.yaml'
-    bcc_epoch = 0
-    opt.epochs = 2
+    opt.data = '../data/Zoon_50min_2perImg_Crowdsourced.yaml'
+    opt.bcc_augment = False
+    opt.exist_ok = False
+    opt.epochs = 300
     opt.batch_size = 16
     opt.weights = ''
     opt.cfg = 'yolov3.yaml'
+    opt.patience = 0
     # torch.autograd.set_detect_anomaly(True)
     main(opt)
 
