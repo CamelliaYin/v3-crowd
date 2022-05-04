@@ -1,0 +1,24 @@
+{
+    "os": "Windows-10-10.0.19042-SP0",
+    "python": "3.9.7",
+    "heartbeatAt": "2022-05-04T14:38:19.670469",
+    "startedAt": "2022-05-04T14:38:14.318585",
+    "docker": null,
+    "gpu": "NVIDIA GeForce RTX 3090",
+    "gpu_count": 1,
+    "cpu_count": 20,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "C:/Users/rb01243/OneDrive - University of Surrey/Documents/GitHub/C-YOLOv3/v3-crowd/src/train_backup.py",
+    "codePath": "src\\train_backup.py",
+    "git": {
+        "remote": "https://github.com/CamelliaYin/v3-crowd.git",
+        "commit": "89b4d6129187de0903bcb92d6df51f4d0b85e88e"
+    },
+    "email": "37083160+Banksylel@users.noreply.github.com",
+    "root": "C:/Users/rb01243/OneDrive - University of Surrey/Documents/GitHub/C-YOLOv3/v3-crowd",
+    "host": "UWS65067",
+    "username": "rb01243",
+    "executable": "C:\\Users\\rb01243\\OneDrive - University of Surrey\\Documents\\GitHub\\venv\\Scripts\\python.exe"
+}
