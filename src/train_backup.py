@@ -760,10 +760,10 @@ def run(**kwargs):
 if __name__ == "__main__":
     opt = parse_opt()
     opt.data = '../data/Zoon_50min_2perImg_Crowdsourced.yaml'
-    opt.bcc_augment = False
+    opt.bcc_augment = True
     opt.exist_ok = False
-    opt.epochs = 300
-    opt.batch_size = 16
+    opt.epochs = 100
+    opt.batch_size = 20
     opt.weights = ''
     opt.cfg = 'yolov3.yaml'
     opt.patience = 0
