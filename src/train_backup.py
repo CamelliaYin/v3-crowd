@@ -759,7 +759,7 @@ def run(**kwargs):
 
 if __name__ == "__main__":
     opt = parse_opt()
-    opt.data = '../data/Zoon_50min_2perImg_Crowdsourced.yaml'
+    opt.data = '../data/single_toy_bcc.yaml'
     opt.bcc_augment = True
     opt.exist_ok = False
     opt.epochs = 100
