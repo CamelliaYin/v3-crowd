@@ -258,7 +258,8 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
 
         if not resume:
             labels = np.concatenate(dataset.labels, 0)
-            # c = torch.tensor(labels[:, 0])  # classes
+            # c
+            # = torch.tensor(labels[:, 0])  # classes
             # cf = torch.bincount(c.long(), minlength=nc) + 1.  # frequency
             # model._initialize_biases(cf.to(device))
             if plots:
@@ -342,7 +343,6 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
         optimizer.zero_grad()
 
         for i, (imgs, targets, paths, _) in pbar:  # batch -------------------------------------------------------------
-            # TODO: is this section supposed to be here? or should it be above (outside for the batch loop)
             if bcc_epoch != -1:
                 batch_filenames = [dataset.label_files[x].split(os.sep)[-1] for x in np.where(dataset.batch==i)[0]]
                 batch_volunteers_list = [file_volunteers_dict[fn] for fn in batch_filenames]
@@ -400,7 +400,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
                     for i in range(len(pred_nor_sm)):
                         pred_oc.append(torch.flatten(pred_nor_sm[i], start_dim=1, end_dim=-2)[:,:,4:])
                     batch_pred = torch.cat((pred_oc[0], pred_oc[1], pred_oc[2]), 1)
-                    # obtain inferred label via bcc
+                    # obtain inferred label via bcc0
                     batch_qtargets, batch_pcm['variational'], batch_lb = BCC(target_volunteers_bcc, batch_pred,
                                                                                   batch_pcm['variational'],
                                                                                   batch_pcm['prior'],
@@ -458,8 +458,8 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
                 results, maps, _ = val.run(data_dict, torchMode, vol_id_map, file_volunteers_dict, cls_num, bcc_epoch, val_dataset,
                                            opt,
                                            # batch_size=batch_size // WORLD_SIZE * 2,
-                                           # imgsz=imgsz,
-                                           model=ema.ema,
+                                           imgsz=imgsz,
+                                           model=model, # ema.ema
                                            single_cls=single_cls,
                                            dataloader=val_loader,
                                            save_dir=save_dir,
