@@ -217,8 +217,9 @@ class LoadImages:
         else:
             # Read image
             self.count += 1
-            img00 = cv2.imread(path, cv2.IMREAD_GRAYSCALE)  # BGR
-            img0 = img00[..., np.newaxis]
+            img0 = cv2.imread(path)
+            # img00 = cv2.imread(path, cv2.IMREAD_GRAYSCALE)  # BGR
+            # img0 = img00[..., np.newaxis]
             assert img0 is not None, f'Image Not Found {path}'
             s = f'image {self.count}/{self.nf} {path}: '
 
@@ -621,7 +622,7 @@ class LoadImagesAndLabels(Dataset):
             labels_out[:, 1:] = torch.from_numpy(labels)
 
         # Convert
-        img = img[..., np.newaxis] ### added
+        # img = img[..., np.newaxis] ### added
         img = img.transpose((2, 0, 1))[::-1] # HWC to CHW, BGR to RGB
         img = np.ascontiguousarray(img)
 
@@ -671,15 +672,16 @@ def load_image(self, i):
             im = np.load(npy)
         else:  # read image
             path = self.img_files[i]
-            ims = cv2.imread(path, cv2.IMREAD_GRAYSCALE)  # BGR
-            im = ims[..., np.newaxis]
+            im = cv2.imread(path)  # BGR
+            # ims = cv2.imread(path, cv2.IMREAD_GRAYSCALE)  # BGR
+            # im = ims[..., np.newaxis]
             assert im is not None, f'Image Not Found {path}'
         h0, w0 = im.shape[:2]  # orig hw
         r = self.img_size / max(h0, w0)  # ratio
         if r != 1:  # if sizes are not equal
             im = cv2.resize(im, (int(w0 * r), int(h0 * r)),
                             interpolation=cv2.INTER_AREA if r < 1 and not self.augment else cv2.INTER_LINEAR)
-            im = im[..., np.newaxis]
+            # im = im[..., np.newaxis]
         return im, (h0, w0), im.shape[:2]  # im, hw_original, hw_resized
     else:
         return self.imgs[i], self.img_hw0[i], self.img_hw[i]  # im, hw_original, hw_resized
@@ -840,9 +842,9 @@ def extract_boxes(path='../datasets/coco128'):  # from utils.datasets import *; 
     for im_file in tqdm(files, total=n):
         if im_file.suffix[1:] in IMG_FORMATS:
             # image
-            # im = cv2.imread(str(im_file), cv2.IMREAD_GRAYSCALE)[..., ::-1]  # BGR to RGB
-            ims = cv2.imread(str(im_file), cv2.IMREAD_GRAYSCALE)[..., ::-1]
-            im = ims[..., np.newaxis]
+            im = cv2.imread(str(im_file), cv2.IMREAD_GRAYSCALE)[..., ::-1]  # BGR to RGB
+            # ims = cv2.imread(str(im_file), cv2.IMREAD_GRAYSCALE)[..., ::-1]
+            # im = ims[..., np.newaxis]
             h, w = im.shape[:2]
 
             # labels
@@ -979,7 +981,8 @@ def dataset_stats(path='coco128.yaml', autodownload=False, verbose=False, profil
             im.save(f_new, 'JPEG', quality=75, optimize=True)  # save
         except Exception as e:  # use OpenCV
             print(f'WARNING: HUB ops PIL failure {f}: {e}')
-            im = cv2.imread(f, cv2.IMREAD_GRAYSCALE)
+            im = cv2.imread(f)
+            # im = cv2.imread(f, cv2.IMREAD_GRAYSCALE)
             im_height, im_width = im.shape[:2]
             r = max_dim / max(im_height, im_width)  # ratio
             if r < 1.0:  # image too large

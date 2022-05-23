@@ -53,9 +53,9 @@ from utils.torch_utils import EarlyStopping, ModelEMA, de_parallel, select_devic
 
 from utils.inferred_targets import VB_iteration as BCC
 from utils.bcc_prep import extract_volunteers, get_file_volunteers_dict, init_bcc_params, compute_param_confusion_matrices, qt2yolo_soft, convert_target_volunteers_yolo2bcc
-from utils.torch_utils import setup_seed
+# from utils.torch_utils import setup_seed
 
-setup_seed(10)
+# setup_seed(10)
 
 LOCAL_RANK = int(os.getenv('LOCAL_RANK', -1))  # https://pytorch.org/docs/stable/elastic/run.html
 RANK = int(os.getenv('RANK', -1))
@@ -128,14 +128,14 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
         with torch_distributed_zero_first(LOCAL_RANK):
             weights = attempt_download(weights)  # download if not found locally
         ckpt = torch.load(weights, map_location=device)  # load checkpoint
-        model = Model(cfg or ckpt['model'].yaml, ch=1, nc=nc, anchors=hyp.get('anchors')).to(device)  # create
+        model = Model(cfg or ckpt['model'].yaml, ch=3, nc=nc, anchors=hyp.get('anchors')).to(device)  # create
         exclude = ['anchor'] if (cfg or hyp.get('anchors')) and not resume else []  # exclude keys
         csd = ckpt['model'].float().state_dict()  # checkpoint state_dict as FP32
         csd = intersect_dicts(csd, model.state_dict(), exclude=exclude)  # intersect
         model.load_state_dict(csd, strict=False)  # load
         LOGGER.info(f'Transferred {len(csd)}/{len(model.state_dict())} items from {weights}')  # report
     else:
-        model = Model(cfg, ch=1, nc=nc, anchors=hyp.get('anchors')).to(device)  # create
+        model = Model(cfg, ch=3, nc=nc, anchors=hyp.get('anchors')).to(device)  # create
         # ch indicates channel
         # https://github.com/ultralytics/yolov3/issues/625
 
@@ -759,13 +759,11 @@ def run(**kwargs):
 
 if __name__ == "__main__":
     opt = parse_opt()
-    opt.data = '../data/Zoon_50min_2perImg_Crowdsourced.yaml'
+    opt.data = 'data/single_toy_bcc.yaml'
     opt.bcc_augment = False
     opt.exist_ok = False
-    opt.epochs = 300
+    opt.epochs = 1
     opt.batch_size = 16
-    opt.weights = ''
-    opt.cfg = 'yolov3.yaml'
     opt.patience = 0
     # torch.autograd.set_detect_anomaly(True)
     main(opt)
