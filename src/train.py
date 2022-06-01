@@ -631,9 +631,9 @@ def run(**kwargs):
 
 if __name__ == "__main__":
     opt = parse_opt()
-    opt.data = 'data/single_toy_iid.yaml'
+    opt.data = 'data/iid-tv.yaml'
     opt.exist_ok = False
     opt.batch_size = 16
-    opt.epochs = 1
+    opt.epochs = 300
     opt.patience = 0
     main(opt)
