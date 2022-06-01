@@ -759,10 +759,10 @@ def run(**kwargs):
 
 if __name__ == "__main__":
     opt = parse_opt()
-    opt.data = 'data/single_toy_bcc.yaml'
+    opt.data = 'data/bcc-tv.yaml'
     opt.bcc_augment = False
     opt.exist_ok = False
-    opt.epochs = 1
+    opt.epochs = 300
     opt.batch_size = 16
     opt.patience = 0
     # torch.autograd.set_detect_anomaly(True)
