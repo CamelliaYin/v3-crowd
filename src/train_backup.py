@@ -544,7 +544,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
                                             single_cls=single_cls,
                                             dataloader=val_loader,
                                             save_dir=save_dir,
-                                            save_json=is_coco,
+                                            save_json=True,
                                             verbose=True,
                                             plots=True,
                                             callbacks=callbacks)  # val best model with plots
@@ -759,10 +759,10 @@ def run(**kwargs):
 
 if __name__ == "__main__":
     opt = parse_opt()
-    opt.data = '../data/Zoon_50min_2perImg_Crowdsourced.yaml'
+    opt.data = 'data/single_toy_bcc.yaml'
     opt.bcc_augment = False
     opt.exist_ok = False
-    opt.epochs = 300
+    opt.epochs = 1
     opt.batch_size = 16
     opt.weights = ''
     opt.cfg = 'yolov3.yaml'
