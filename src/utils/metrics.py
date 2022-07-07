@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import pandas as pd
-
+import json
 
 def fitness(x):
     # Model fitness as a weighted combination of metrics
@@ -75,7 +75,10 @@ def ap_per_class(tp, conf, pred_cls, target_cls, plot=False, save_dir='.', names
     f1 = 2 * p * r / (p + r + 1e-16)
     names = [v for k, v in names.items() if k in unique_classes]  # list: only classes that have data
     names = {i: v for i, v in enumerate(names)}  # to dict
-    SavePlotMetricsToCSV(px, py, ap, f1, p, r, save_dir, names)
+    if plot:
+        save_data = {'lsX': px, 'lsY': py, 'precision': p, 'recall': r, 'f1': f1, 'average_precision': ap,
+                     'directory': save_dir, 'classes': names}
+        np.save(Path(save_dir)/'pr_plot.npy', save_data)
     if plot:
         plot_pr_curve(px, py, ap, Path(save_dir) / 'PR_curve.png', names)
         plot_mc_curve(px, f1, Path(save_dir) / 'F1_curve.png', names, ylabel='F1')
@@ -86,27 +89,29 @@ def ap_per_class(tp, conf, pred_cls, target_cls, plot=False, save_dir='.', names
     return p[:, i], r[:, i], ap, f1[:, i], unique_classes.astype('int32')
 
 
-def SavePlotMetricsToCSV(px, py, p, r, f1, ap, save_dir, names):
-    """ saves all the metrics used to compute all cureves at each epoch
-    # Arguments
-        px:         line spacing for x (array)
-        py:         line spacing for y  (array)
-        ap:         average precision metrics (2d array)
-        f1:         f1 metrics (2d array)
-        p:          precision metrics (2d array)
-        r:          precision metrics (2d array)
-        save_dir:   save directory (windowsPath)
-        names:      class names (dict)
-    # Returns
-        NULL [Saves csv of input data]
-    """
-    if not os.path.exists(Path(save_dir) / 'plots.csv'):
-        initCSV = pd.DataFrame([[px, py, p, r, f1, ap, save_dir,names]], columns=['lsX', 'lsY', 'precision', 'recall', 'f1', 'average_precision', 'directory', 'classes'])
-        initCSV.to_csv(Path(save_dir) / 'plots.csv')
-    else:
-        newDF = pd.DataFrame([[px, py, p, r, f1, ap, save_dir, names]], columns=['lsX', 'lsY', 'precision', 'recall', 'f1', 'average_precision', 'directory', 'classes'])
-        newDF.to_csv(Path(save_dir) / 'plots.csv', mode='a', header=False)
-    return
+# def SavePlotMetricsToCSV(px, py, p, r, f1, ap, save_dir, names):
+#     """ saves all the metrics used to compute all cureves at each epoch
+#     # Arguments
+#         px:         line spacing for x (array)
+#         py:         line spacing for y  (array)
+#         ap:         average precision metrics (2d array)
+#         f1:         f1 metrics (2d array)
+#         p:          precision metrics (2d array)
+#         r:          precision metrics (2d array)
+#         save_dir:   save directory (windowsPath)
+#         names:      class names (dict)
+#     # Returns
+#         NULL [Saves csv of input data]
+#     """
+#     save_data = {'lsX': px, 'lsY': py, 'precision': p, 'recall': r, 'f1': f1, 'average_precision': ap,
+#                  'directory': save_dir, 'classes': names}
+#     if not os.path.exists(Path(save_dir) / 'plots.csv'):
+#         initCSV = pd.DataFrame(save_data)
+#         initCSV.to_csv(Path(save_dir) / 'plots.csv')
+#     else:
+#         newDF = pd.DataFrame(save_data)
+#         newDF.to_csv(Path(save_dir) / 'plots.csv', mode='a', header=False)
+#     return
 
 
 def compute_ap(recall, precision):
@@ -139,13 +144,14 @@ def compute_ap(recall, precision):
 
 class ConfusionMatrix:
     # Updated version of https://github.com/kaanakan/object_detection_confusion_matrix
-    def __init__(self, nc, conf=0.25, iou_thres=0.45):
+    # def __init__(self, nc, conf=0.001, iou_thres=0.2): ##### used to be: conf=0.25, iou_thres=0.45
+    def __init__(self, nc, conf=0.25, iou_thres=0.45): ##### used to be: conf=0.25, iou_thres=0.45
         self.matrix = np.zeros((nc + 1, nc + 1))
         self.nc = nc  # number of classes
         self.conf = conf
         self.iou_thres = iou_thres
 
-    def process_batch(self, detections, labels):
+    def process_batch(self, detections, labels, save_dir):
         """
         Return intersection-over-union (Jaccard index) of boxes.
         Both sets of boxes are expected to be in (x1, y1, x2, y2) format.
@@ -155,19 +161,19 @@ class ConfusionMatrix:
         Returns:
             None, updates confusion matrix accordingly
         """
-        detections = detections[detections[:, 4] > self.conf]
+        detections = detections[detections[:, 4] > self.conf] # only select where the conf > threshold
         gt_classes = labels[:, 0].int()
         detection_classes = detections[:, 5].int()
-        iou = box_iou(labels[:, 1:], detections[:, :4])
+        iou = box_iou(labels[:, 1:], detections[:, :4]) # dim: (len(gt) X len(detections))
 
-        x = torch.where(iou > self.iou_thres)
+        x = torch.where(iou > self.iou_thres) # give coordinate iou[x, y]
         if x[0].shape[0]:
-            matches = torch.cat((torch.stack(x, 1), iou[x[0], x[1]][:, None]), 1).cpu().numpy()
+            matches = torch.cat((torch.stack(x, 1), iou[x[0], x[1]][:, None]), 1).cpu().numpy() # (No of elements pass the iou X [x, y, iou])
             if x[0].shape[0] > 1:
+                matches = matches[matches[:, 2].argsort()[::-1]] # pick from iou from high to low
+                matches = matches[np.unique(matches[:, 1], return_index=True)[1]] # remove duplicated detections
                 matches = matches[matches[:, 2].argsort()[::-1]]
-                matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
-                matches = matches[matches[:, 2].argsort()[::-1]]
-                matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
+                matches = matches[np.unique(matches[:, 0], return_index=True)[1]] # remove duplicated gt and pick the highest iou
         else:
             matches = np.zeros((0, 3))
 
@@ -184,6 +190,9 @@ class ConfusionMatrix:
             for i, dc in enumerate(detection_classes):
                 if not any(m1 == i):
                     self.matrix[dc, self.nc] += 1  # background FN
+        # save_cm = {'cm_raw': self.matrix}
+        # np.save(Path(save_dir) / 'cm_raw.npy', save_cm)
+
 
     def matrix(self):
         return self.matrix
@@ -198,6 +207,8 @@ class ConfusionMatrix:
             fig = plt.figure(figsize=(12, 9), tight_layout=True)
             sn.set(font_scale=1.0 if self.nc < 50 else 0.8)  # for label size
             labels = (0 < len(names) < 99) and len(names) == self.nc  # apply names to ticklabels
+            save_cm = {'cm_raw': self.matrix, 'cm_percent': array}
+            np.save(Path(save_dir) / 'cm_raw.npy', save_cm)
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore')  # suppress empty matrix RuntimeWarning: All-NaN slice encountered
                 sn.heatmap(array, annot=self.nc < 30, annot_kws={"size": 8}, cmap='Blues', fmt='.2f', square=True,

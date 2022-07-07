@@ -187,7 +187,7 @@ def run(data,
         lb = [targets[targets[:, 0] == i, 1:] for i in range(nb)] if save_hybrid else []  # for autolabelling
         t3 = time_sync()
         #baseline changes
-        out = non_max_suppression(out, conf_thres=0.01, iou_thres=0.45, labels=lb, multi_label=False, agnostic=single_cls)
+        out = non_max_suppression(out, conf_thres=0.001, iou_thres=0.45, labels=lb, multi_label=False, agnostic=single_cls)
         dt[2] += time_sync() - t3
 
         # Metrics
@@ -216,7 +216,8 @@ def run(data,
                 labelsn = torch.cat((labels[:, 0:1], tbox), 1)  # native-space labels
                 correct = process_batch(predn, labelsn, iouv)
                 if plots:
-                    confusion_matrix.process_batch(predn, labelsn)
+                    confusion_matrix.process_batch(predn, labelsn, save_dir)
+
             else:
                 correct = torch.zeros(pred.shape[0], niou, dtype=torch.bool)
             stats.append((correct.cpu(), pred[:, 4].cpu(), pred[:, 5].cpu(), tcls))  # (correct, conf, pcls, tcls)
@@ -346,6 +347,7 @@ def main(opt):
         if opt.task == 'speed':  # speed benchmarks
             # python val.py --task speed --data coco.yaml --batch 1 --weights yolov3.pt yolov3-spp.pt...
             opt.conf_thres, opt.iou_thres, opt.save_json = 0.25, 0.45, False
+            # opt.conf_thres, opt.iou_thres, opt.save_json = 0.01, 0.1, False ########just for testing
             for opt.weights in weights:
                 run(**vars(opt), plots=False)
 
